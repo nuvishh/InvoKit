@@ -159,6 +159,15 @@
       <label>Terms &amp; conditions</label><textarea id="mTerms">Payment is due by the due date mentioned above.</textarea>
       <p class="muted">Draft auto-saves in this browser. Nothing is uploaded anywhere.</p>
     </div>
+    <div class="card">
+      <h2>💾 Backup</h2>
+      <p class="muted" style="margin-top:0">Export your invoice data as a file, and import it on another device or browser — no need to type the same details again.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn btn-add" onclick="exportData()">⬇️ Export Data</button>
+        <button class="btn btn-new" onclick="$('importInput').click()">⬆️ Import Data</button>
+        <input type="file" id="importInput" accept=".json,application/json" style="display:none">
+      </div>
+    </div>
   </section>
   <section>
     <div id="sheet"></div>
@@ -365,6 +374,65 @@ $('logoInput').addEventListener('change', e => {
   const r = new FileReader();
   r.onload = () => { S.business.logo = r.result; render(); };
   r.readAsDataURL(f);
+});
+function syncEditor(){
+  $('bName').value = S.business.name || '';
+  $('bAddr').value = S.business.address || '';
+  $('bPhone').value = S.business.phone || '';
+  $('bEmail').value = S.business.email || '';
+  $('bGstin').value = S.business.gstin || '';
+  $('cName').value = S.client.name || '';
+  $('cAddr').value = S.client.address || '';
+  $('cPhone').value = S.client.phone || '';
+  $('cGstin').value = S.client.gstin || '';
+  $('mNo').value = S.meta.no || '';
+  $('mDate').value = S.meta.date || '';
+  $('mDue').value = S.meta.due || '';
+  $('mNotes').value = S.notes || '';
+  $('mTerms').value = S.terms || '';
+  $('mPlace').value = S.meta.place || 'Kerala';
+  $('mSupply').value = S.meta.supply || 'intra';
+  applyGst();
+  renderItems();
+}
+function applyImport(o){
+  const base = sampleState();
+  S.business = Object.assign(base.business, o.business || {});
+  S.client = Object.assign(base.client, o.client || {});
+  S.meta = Object.assign(base.meta, o.meta || {});
+  if (S.meta.gst === undefined) S.meta.gst = true;
+  S.items = Array.isArray(o.items) ? o.items : [];
+  S.notes = o.notes !== undefined ? o.notes : base.notes;
+  S.terms = o.terms !== undefined ? o.terms : base.terms;
+  syncEditor();
+  render();
+}
+function exportData(){
+  const data = Object.assign({ app: 'InvoKit', version: 1 }, S);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const safeNo = (S.meta.no || 'invoice').replace(/[^a-zA-Z0-9-_]+/g, '-');
+  a.download = 'InvoKit-' + safeNo + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$('importInput').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const o = JSON.parse(r.result);
+      if (!o || typeof o !== 'object' || !Array.isArray(o.items)) throw new Error('bad file');
+      applyImport(o);
+    } catch (err) {
+      alert('Could not import this file. Please choose a valid InvoKit export (.json) file.');
+    }
+  };
+  r.readAsText(f);
+  e.target.value = '';
 });
 applyGst();
 renderItems();

@@ -17,6 +17,7 @@ Free invoice generator with optional GST — 100% in your browser. No sign-up, n
 - **Items table** — description, HSN/SAC, quantity, rate, GST %.
 - **Print / Save as PDF** — clean A4 output via the browser print dialog.
 - **Auto-saved draft** — your invoice is saved in the browser (localStorage). Nothing is uploaded anywhere.
+- **Export / Import** — download your invoice data as a JSON file and restore it on any device or browser — no re-typing.
 - **Mobile friendly** — the editor stacks on phones; the invoice still prints full A4.
 
 ## 🧾 How to use
