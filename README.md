@@ -18,6 +18,7 @@ Free invoice generator with optional GST — 100% in your browser. No sign-up, n
 - **Print / Save as PDF** — clean A4 output via the browser print dialog.
 - **Auto-saved draft** — your invoice is saved in the browser (localStorage). Nothing is uploaded anywhere.
 - **Export / Import** — download your invoice data as a JSON file and restore it on any device or browser — no re-typing.
+- **Duplicate invoice, discount & shipping** — duplicate any invoice with a new number, add a % or fixed discount on the subtotal, and shipping charges.
 - **Mobile friendly** — the editor stacks on phones; the invoice still prints full A4.
 
 ## 🧾 How to use

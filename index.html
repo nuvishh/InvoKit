@@ -111,6 +111,7 @@
   </div>
   <div>
     <button class="btn btn-new" onclick="newInvoice()">New Invoice</button>
+    <button class="btn btn-new" onclick="duplicateInvoice()">Duplicate</button>
     <button class="btn btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
   </div>
 </header>
@@ -162,6 +163,15 @@
       <div id="itemEditor"></div>
       <button class="btn btn-add" onclick="addItem()">+ Add Item</button>
       <p class="muted gst-only">GST rates: 0%, 5%, 12%, 18%, 28%. Tax is calculated per item.</p>
+    </div>
+    <div class="card">
+      <h2>Discount &amp; Shipping</h2>
+      <div class="row2">
+        <div><label>Discount type</label><select id="mDiscType"><option value="pct">Percentage (%)</option><option value="fixed">Fixed amount (₹)</option></select></div>
+        <div><label>Discount value</label><input type="number" min="0" step="any" id="mDiscVal" placeholder="0"></div>
+      </div>
+      <label>Shipping / delivery charges (₹)</label><input type="number" min="0" step="any" id="mShip" placeholder="0">
+      <p class="muted">Discount applies on the subtotal. Tax is calculated on item amounts.</p>
     </div>
     <div class="card">
       <h2>Notes &amp; Terms</h2>
@@ -252,7 +262,7 @@ function sampleState(){
   return {
     business: { name:'', address:'', phone:'', email:'', gstin:'', logo:'' },
     client: { name:'', address:'', phone:'', gstin:'' },
-    meta: { no:'INV-001', date: todayISO(), due:'', place:'Kerala', supply:'intra', gst:true },
+    meta: { no:'INV-001', date: todayISO(), due:'', place:'Kerala', supply:'intra', gst:true, discountType:'pct', discountVal:0, shipping:0 },
     items: [ { desc:'Design services', hsn:'', qty:1, rate:25000, gst:18 } ],
     notes:'Thank you for your business!',
     terms:'Payment is due by the due date mentioned above.'
@@ -281,10 +291,16 @@ function compute(){
     sub += amt; tax += tx;
     return { desc: it.desc, hsn: it.hsn, qty, rate, g, amt, tx };
   });
-  const total = S.meta.gst ? sub + tax : sub;
+  const discVal = parseFloat(S.meta.discountVal) || 0;
+  let disc = S.meta.discountType === 'fixed' ? discVal : sub * discVal / 100;
+  if (disc < 0) disc = 0;
+  if (disc > sub) disc = sub;
+  let ship = parseFloat(S.meta.shipping) || 0;
+  if (ship < 0) ship = 0;
+  const total = (S.meta.gst ? sub + tax : sub) - disc + ship;
   const grand = Math.round(total);
   const intra = S.meta.supply === 'intra';
-  return { rows, sub, tax, cgst: intra ? tax/2 : 0, sgst: intra ? tax/2 : 0, igst: intra ? 0 : tax, grand, roundOff: grand - total, intra };
+  return { rows, sub, tax, cgst: intra ? tax/2 : 0, sgst: intra ? tax/2 : 0, igst: intra ? 0 : tax, grand, roundOff: grand - total, intra, disc, ship };
 }
 
 function render(){
@@ -307,6 +323,8 @@ const itemRows = c.rows.map((r, i) =>
       taxRows = '<div class="tr"><span>IGST</span><span>' + fmtMoney(c.igst) + '</span></div>';
     }
   }
+  const discRows = (c.disc > 0 ? '<div class="tr"><span>Discount</span><span>- ' + fmtMoney(c.disc) + '</span></div>' : '') +
+                   (c.ship > 0 ? '<div class="tr"><span>Shipping</span><span>' + fmtMoney(c.ship) + '</span></div>' : '');
   const ro = c.roundOff;
   const roStr = (ro < 0 ? '- ' : ro > 0 ? '+ ' : '') + fmtMoney(Math.abs(ro));
   const bizLines = [b.address, [b.phone, b.email].filter(Boolean).join(' · '), (S.meta.gst && b.gstin) ? 'GSTIN: ' + b.gstin : ''].filter(Boolean).join('\n');
@@ -328,6 +346,7 @@ const itemRows = c.rows.map((r, i) =>
     '<tbody>' + itemRows + '</tbody></table></div>' +
     '<div class="totals">' +
       '<div class="tr"><span>Subtotal</span><span>' + fmtMoney(c.sub) + '</span></div>' +
+      discRows +
       taxRows +
       '<div class="tr"><span>Round Off</span><span>' + roStr + '</span></div>' +
       '<div class="tr grand"><span>Grand Total</span><span>' + fmtMoney(c.grand) + '</span></div>' +
@@ -373,6 +392,14 @@ function newInvoice(){
   renderItems(); render();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+function duplicateInvoice(){
+  const mm = S.meta.no.match(/^(.*?)(\d+)$/);
+  if (mm) S.meta.no = mm[1] + String(parseInt(mm[2], 10) + 1).padStart(mm[2].length, '0');
+  S.meta.date = todayISO(); S.meta.due = '';
+  $('mNo').value = S.meta.no; $('mDate').value = S.meta.date; $('mDue').value = '';
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 function bindField(id, get, set){
   const el = $(id);
@@ -399,6 +426,10 @@ $('mPlace').value = S.meta.place || 'Kerala';
 $('mPlace').addEventListener('input', () => { S.meta.place = $('mPlace').value; render(); });
 $('mSupply').value = S.meta.supply || 'intra';
 $('mSupply').addEventListener('input', () => { S.meta.supply = $('mSupply').value; render(); });
+$('mDiscType').value = S.meta.discountType || 'pct';
+$('mDiscType').addEventListener('input', () => { S.meta.discountType = $('mDiscType').value; render(); });
+bindField('mDiscVal', () => S.meta.discountVal, v => S.meta.discountVal = v);
+bindField('mShip', () => S.meta.shipping, v => S.meta.shipping = v);
 function applyGst(){
   document.body.classList.toggle('no-gst', !S.meta.gst);
   $('gstToggle').checked = !!S.meta.gst;
@@ -427,6 +458,9 @@ function syncEditor(){
   $('mTerms').value = S.terms || '';
   $('mPlace').value = S.meta.place || 'Kerala';
   $('mSupply').value = S.meta.supply || 'intra';
+  $('mDiscType').value = S.meta.discountType || 'pct';
+  $('mDiscVal').value = S.meta.discountVal || 0;
+  $('mShip').value = S.meta.shipping || 0;
   applyGst();
   renderItems();
 }
