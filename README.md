@@ -19,6 +19,7 @@ Free invoice generator with optional GST — 100% in your browser. No sign-up, n
 - **Auto-saved draft** — your invoice is saved in the browser (localStorage). Nothing is uploaded anywhere.
 - **Export / Import** — download your invoice data as a JSON file and restore it on any device or browser — no re-typing.
 - **Duplicate invoice, discount & shipping** — duplicate any invoice with a new number, add a % or fixed discount on the subtotal, and shipping charges.
+- **5 templates & colors** — Classic, Modern, Bold (A4) + Thermal 80mm & 58mm receipts; change the invoice accent color with presets or a custom picker.
 - **Mobile friendly** — the editor stacks on phones; the invoice still prints full A4.
 
 ## 🧾 How to use
